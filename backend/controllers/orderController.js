@@ -1,4 +1,5 @@
 const Order = require('../models/orderModel');
+const mongoose = require('mongoose');
 
 // Error wrapper
 const asyncHandler = (fn) => async (req, res) => {
@@ -53,7 +54,14 @@ const addOrderItems = asyncHandler(async (req, res) => {
 // @route   GET /api/orders/myorders
 // @access  Private
 const getMyOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({ user: req.user._id });
+  console.log('getMyOrders called - User:', req.user?._id);
+  
+  if (!req.user || !req.user._id) {
+    return res.status(401).json({ message: 'User not authenticated' });
+  }
+
+  const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 });
+  console.log('Found orders:', orders.length);
   res.json(orders);
 });
 
@@ -61,7 +69,14 @@ const getMyOrders = asyncHandler(async (req, res) => {
 // @route   GET /api/orders/:id
 // @access  Private
 const getOrderById = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.id).populate('user', 'name email');
+  const { id } = req.params;
+
+  // Validate if the ID is a valid MongoDB ObjectId
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid order ID format' });
+  }
+
+  const order = await Order.findById(id).populate('user', 'name email');
   if (!order) {
     return res.status(404).json({ message: 'Order not found' });
   }
@@ -80,7 +95,14 @@ const getOrders = asyncHandler(async (req, res) => {
 // @route   PUT /api/orders/:id/deliver
 // @access  Private/Admin
 const updateOrderToDelivered = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.id);
+  const { id } = req.params;
+
+  // Validate if the ID is a valid MongoDB ObjectId
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid order ID format' });
+  }
+
+  const order = await Order.findById(id);
 
   if (!order) {
     return res.status(404).json({ message: 'Order not found' });
