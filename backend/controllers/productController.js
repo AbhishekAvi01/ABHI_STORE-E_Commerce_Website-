@@ -1,4 +1,5 @@
 const Product = require('../models/productModel');
+const mongoose = require('mongoose');
 
 const asyncHandler = (fn) => async (req, res) => {
   try {
@@ -44,7 +45,14 @@ const getProducts = asyncHandler(async (req, res) => {
 // @desc    Get product by ID
 // @route   GET /api/products/:id
 const getProductById = asyncHandler(async (req, res) => {
-  const product = await Product.findById(req.params.id);
+  const { id } = req.params;
+
+  // Validate if the ID is a valid MongoDB ObjectId
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid product ID format' });
+  }
+
+  const product = await Product.findById(id);
   if (!product) {
     return res.status(404).json({ message: 'Product not found' });
   }
@@ -73,7 +81,14 @@ const createProduct = asyncHandler(async (req, res) => {
 // @route   DELETE /api/products/:id
 // @access  Private/Admin
 const deleteProduct = asyncHandler(async (req, res) => {
-  const product = await Product.findById(req.params.id);
+  const { id } = req.params;
+
+  // Validate if the ID is a valid MongoDB ObjectId
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid product ID format' });
+  }
+
+  const product = await Product.findById(id);
   if (!product) {
     return res.status(404).json({ message: 'Product not found' });
   }
@@ -86,9 +101,16 @@ const deleteProduct = asyncHandler(async (req, res) => {
 // @route   PUT /api/products/:id
 // @access  Private/Admin
 const updateProduct = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Validate if the ID is a valid MongoDB ObjectId
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid product ID format' });
+  }
+
   const { name, price, description, image, brand, category, countInStock } = req.body;
 
-  const product = await Product.findById(req.params.id);
+  const product = await Product.findById(id);
 
   if (!product) {
     return res.status(404).json({ message: 'Product not found' });

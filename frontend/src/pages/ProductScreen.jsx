@@ -1,23 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../slices/cartSlice';
+import api from '../utils/api';
 import toast, { Toaster } from 'react-hot-toast';
 
 const ProductScreen = () => {
   const { id: productId } = useParams();
   const [product, setProduct] = useState({});
   const [qty, setQty] = useState(1); // Naya state quantity ke liye
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const dispatch = useDispatch();
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const { data } = await axios.get(`/api/products/${productId}`);
+        setLoading(true);
+        const { data } = await api.get(`/products/${productId}`);
         setProduct(data);
+        setError(null);
       } catch (error) {
         console.error("Error fetching product details:", error);
+        setError(error.response?.data?.message || "Failed to load product");
+      } finally {
+        setLoading(false);
       }
     };
     fetchProduct();
@@ -63,7 +70,23 @@ const ProductScreen = () => {
         ← Back to Store
       </Link>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-20 items-center">
+      {loading && (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+            <p className="mt-4 text-gray-600">Loading product...</p>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-10">
+          <p className="text-red-600 font-bold">{error}</p>
+        </div>
+      )}
+
+      {!loading && !error && Object.keys(product).length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-20 items-center">
         {/* Left: Big Image */}
         <div className="bg-gray-50 rounded-[3rem] p-10 md:p-20 flex items-center justify-center shadow-inner aspect-square">
           <img 
@@ -133,6 +156,7 @@ const ProductScreen = () => {
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 };
