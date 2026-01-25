@@ -1,51 +1,43 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useGetOrderByIdQuery, useUpdateOrderToDeliveredMutation } from '../slices/ordersApiSlice';
+import toast, { Toaster } from 'react-hot-toast';
 
 const OrderScreen = () => {
+  const navigate = useNavigate();
   const { id: orderId } = useParams();
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-
-  const fetchOrderDetails = async () => {
-    try {
-      const config = {
-        headers: { Authorization: `Bearer ${userInfo?.token}` },
-      };
-      const { data } = await axios.get(`/api/orders/${orderId}`, config);
-      setOrder(data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Order fetch error:', error);
-      setLoading(false);
-    }
-  };
-
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // Check authentication on mount
   useEffect(() => {
-    if (userInfo) {
-      fetchOrderDetails();
+    const userInfo = localStorage.getItem('userInfo');
+    if (!userInfo) {
+      navigate('/login');
+      return;
     }
-  }, [orderId]);
+    setIsAuthenticated(true);
+  }, [navigate]);
+
+  const { data: order, isLoading, error } = useGetOrderByIdQuery(orderId, {
+    skip: !isAuthenticated,
+  });
+  const [updateOrderToDelivered, { isLoading: isUpdating }] = useUpdateOrderToDeliveredMutation();
+  const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
 
   const deliverHandler = async () => {
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${userInfo?.token}` },
-      };
-      // Status update request
-      await axios.put(`/api/orders/${order._id}/deliver`, {}, config);
-      
-      // FIX: Page reload ki jagah data fetch karein takki smooth experience rahe
-      fetchOrderDetails(); 
-      alert('Order status updated to Delivered!');
+      await updateOrderToDelivered(orderId).unwrap();
+      toast.success('Order status updated to Delivered!', {
+        position: 'top-center',
+        style: { borderRadius: '12px', background: '#111', color: '#fff', fontSize: '11px', fontWeight: 'bold' }
+      });
     } catch (err) {
-      alert(err.response ? err.response.data.message : err.message);
+      toast.error(err?.data?.message || 'Failed to update order');
     }
   };
 
-  if (loading) return <div className="p-10 font-bold text-center">Loading Invoice...</div>;
+  if (isLoading) return <div className="p-10 font-bold text-center">Loading Invoice...</div>;
+  if (error) return <div className="p-10 text-red-500 text-center">Error: {error?.data?.message || 'Order Not Found'}</div>;
   if (!order) return <div className="p-10 text-red-500 text-center">Order Not Found</div>;
 
   return (
@@ -108,9 +100,10 @@ const OrderScreen = () => {
             {userInfo?.isAdmin && !order.isDelivered && (
               <button
                 onClick={deliverHandler}
-                className="w-full mt-4 bg-white text-gray-900 font-black py-4 rounded-2xl hover:bg-blue-600 hover:text-white transition-all uppercase tracking-widest text-xs"
+                disabled={isUpdating}
+                className="w-full mt-4 bg-white text-gray-900 font-black py-4 rounded-2xl hover:bg-blue-600 hover:text-white transition-all uppercase tracking-widest text-xs disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Mark As Delivered
+                {isUpdating ? 'Updating...' : 'Mark As Delivered'}
               </button>
             )}
           </div>

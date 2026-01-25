@@ -3,16 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import CheckoutSteps from '../components/CheckoutSteps';
 import { clearCartItems } from '../slices/cartSlice';
+import { useCreateOrderMutation } from '../slices/ordersApiSlice';
 import toast, { Toaster } from 'react-hot-toast';
-import axios from 'axios';
 
 const PlaceOrderScreen = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [orderId, setOrderId] = useState(null);
   const cart = useSelector((state) => state.cart);
+  
+  const [createOrder, { isLoading }] = useCreateOrderMutation();
 
   useEffect(() => {
     if (!cart.shippingAddress.address) navigate('/shipping');
@@ -20,17 +21,8 @@ const PlaceOrderScreen = () => {
   }, [cart.paymentMethod, cart.shippingAddress.address, navigate]);
 
   const placeOrderHandler = async () => {
-    setLoading(true);
     try {
-      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${userInfo?.token}`
-        }
-      };
-
-      const { data } = await axios.post('/api/orders', {
+      const result = await createOrder({
         orderItems: cart.cartItems,
         shippingAddress: cart.shippingAddress,
         paymentMethod: cart.paymentMethod,
@@ -38,21 +30,19 @@ const PlaceOrderScreen = () => {
         shippingPrice: cart.shippingPrice,
         taxPrice: cart.taxPrice,
         totalPrice: cart.totalPrice,
-      }, config);
+      }).unwrap();
 
       dispatch(clearCartItems());
-      setOrderId(data._id);
+      setOrderId(result._id);
       setShowSuccess(true);
       
       // Auto-redirect after 2 seconds
       setTimeout(() => {
-        navigate(`/order/${data._id}`);
+        navigate(`/order/${result._id}`);
       }, 2000);
       
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Failed to place order');
-    } finally {
-      setLoading(false);
+      toast.error(err?.data?.message || 'Failed to place order');
     }
   };
 
@@ -121,10 +111,10 @@ const PlaceOrderScreen = () => {
           </div>
           <button 
             onClick={placeOrderHandler} 
-            disabled={loading || cart.cartItems.length === 0}
+            disabled={isLoading || cart.cartItems.length === 0}
             className="w-full bg-blue-600 hover:bg-blue-700 py-6 rounded-2xl font-black uppercase tracking-widest text-[11px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Processing...' : 'Place Order Now →'}
+            {isLoading ? 'Processing...' : 'Place Order Now →'}
           </button>
         </div>
       </div>

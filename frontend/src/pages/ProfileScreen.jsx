@@ -1,33 +1,27 @@
 // frontend/src/pages/ProfileScreen.jsx
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { Link, useNavigate } from 'react-router-dom';
+import { useGetMyOrdersQuery } from '../slices/ordersApiSlice';
 
 const ProfileScreen = () => {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Check if user is authenticated
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-        const config = {
-          headers: {
-            Authorization: `Bearer ${userInfo.token}`,
-          },
-        };
-        // Backend API call
-        const { data } = await axios.get('/api/orders/myorders', config);
-        setOrders(data);
-        setLoading(false);
-      } catch (err) {
-        console.error("Orders load nahi huye:", err);
-        setLoading(false);
-      }
-    };
-    fetchOrders();
-  }, []);
+    const userInfo = localStorage.getItem('userInfo');
+    if (!userInfo) {
+      navigate('/login');
+      return;
+    }
+    setIsAuthenticated(true);
+  }, [navigate]);
+
+  // Only fetch orders if user is authenticated
+  const { data: orders = [], isLoading, error } = useGetMyOrdersQuery(undefined, {
+    skip: !isAuthenticated,
+  });
 
   const toggleOrderDetails = (orderId) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
@@ -40,12 +34,23 @@ const ProfileScreen = () => {
         <p className="text-gray-600">View and manage all your orders in one place</p>
       </div>
       
-      {loading ? (
+      {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="w-12 h-12 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-gray-600">Loading your orders...</p>
           </div>
+        </div>
+      ) : error ? (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <p className="text-red-600 font-bold mb-2">Failed to load orders</p>
+          <p className="text-red-500 text-sm">{error?.data?.message || error?.error || 'Unknown error occurred'}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+          >
+            Retry
+          </button>
         </div>
       ) : orders.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-lg p-12 text-center shadow-sm">

@@ -9,7 +9,30 @@ export const ordersApiSlice = apiSlice.injectEndpoints({
         body: { ...order },
       }),
     }),
+    getMyOrders: builder.query({
+      query: () => ({
+        url: '/api/orders/myorders',
+        method: 'GET',
+      }),
+    }),
+    getOrderById: builder.query({
+      query: (id) => ({
+        url: `/api/orders/${id}`,
+        method: 'GET',
+      }),
+    }),
+    updateOrderToDelivered: builder.mutation({
+      query: (id) => ({
+        url: `/api/orders/${id}/deliver`,
+        method: 'PUT',
+      }),
+    }),
   }),
 });
 
-export const { useCreateOrderMutation } = ordersApiSlice;
+export const { 
+  useCreateOrderMutation, 
+  useGetMyOrdersQuery,
+  useGetOrderByIdQuery,
+  useUpdateOrderToDeliveredMutation 
+} = ordersApiSlice;
