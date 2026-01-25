@@ -11,10 +11,33 @@ const asyncHandler = (fn) => async (req, res) => {
   }
 };
 
-// @desc    Get all products
-// @route   GET /api/products
+// @desc    Get all products with search, filter, and sorting
+// @route   GET /api/products?search=keyword&category=name&sort=price_asc
 const getProducts = asyncHandler(async (req, res) => {
-  const products = await Product.find({});
+  const { search, category, sort } = req.query;
+  
+  // Build MongoDB query
+  let query = {};
+  
+  // Search by product name (case-insensitive)
+  if (search) {
+    query.name = { $regex: search, $options: 'i' };
+  }
+  
+  // Filter by category
+  if (category) {
+    query.category = category;
+  }
+  
+  // Build sort object
+  let sortOptions = {};
+  if (sort === 'price_asc') {
+    sortOptions.price = 1;
+  } else if (sort === 'price_desc') {
+    sortOptions.price = -1;
+  }
+  
+  const products = await Product.find(query).sort(sortOptions);
   res.json(products);
 });
 

@@ -18,6 +18,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true })); 
 app.use(cors()); 
 
+// Serve static files (for local image uploads)
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
+
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/upload', uploadRoutes);
