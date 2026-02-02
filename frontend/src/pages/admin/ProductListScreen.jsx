@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import getApiUrl from '../../utils/getApiUrl';
 import { useNavigate } from 'react-router-dom';
 
 const ProductListScreen = () => {
@@ -12,7 +13,7 @@ const ProductListScreen = () => {
 
   const fetchProducts = async () => {
     try {
-      const { data } = await axios.get('/api/products');
+      const { data } = await axios.get(getApiUrl() + '/products');
       if (Array.isArray(data)) {
         setProducts(data);
       } else {
@@ -41,7 +42,7 @@ const ProductListScreen = () => {
     if (window.confirm('Naya sample product banayein?')) {
       try {
         const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
-        const { data } = await axios.post('/api/products', {}, config);
+        const { data } = await axios.post(getApiUrl() + '/products', {}, config);
         
         fetchProducts(); // List refresh karein
         alert('Sample Product Created Successfully!');
@@ -59,7 +60,7 @@ const ProductListScreen = () => {
     if (window.confirm('Kya aap is product ko hamesha ke liye delete karna chahte hain?')) {
       try {
         const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
-        await axios.delete(`/api/products/${id}`, config);
+        await axios.delete(getApiUrl() + `/products/${id}`, config);
         
         fetchProducts(); // List update karein
         alert('Product Deleted!');

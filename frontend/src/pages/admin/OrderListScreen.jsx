@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom'; // Link import kiya
 import axios from 'axios';
+import getApiUrl from '../../utils/getApiUrl';
 
 const OrderListScreen = () => {
   const [orders, setOrders] = useState([]);
@@ -15,7 +16,7 @@ const OrderListScreen = () => {
             Authorization: `Bearer ${userInfo.token}`,
           },
         };
-        const { data } = await axios.get('/api/orders', config);
+        const { data } = await axios.get(getApiUrl() + '/orders', config);
         if (Array.isArray(data)) {
           setOrders(data);
         } else {

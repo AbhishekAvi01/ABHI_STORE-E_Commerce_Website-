@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import getApiUrl from '../../utils/getApiUrl';
 
 const UserListScreen = () => {
   const [users, setUsers] = useState([]);
@@ -9,7 +10,7 @@ const UserListScreen = () => {
     try {
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
-      const { data } = await axios.get('/api/users', config);
+      const { data } = await axios.get(getApiUrl() + '/users', config);
       if (Array.isArray(data)) {
         setUsers(data);
       } else {
@@ -31,7 +32,7 @@ const UserListScreen = () => {
       try {
         const userInfo = JSON.parse(localStorage.getItem('userInfo'));
         const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
-        await axios.delete(`/api/users/${id}`, config);
+        await axios.delete(getApiUrl() + `/users/${id}`, config);
         fetchUsers(); // Table refresh karne ke liye
       } catch (error) {
         alert(error.response?.data?.message || 'Delete failed');
