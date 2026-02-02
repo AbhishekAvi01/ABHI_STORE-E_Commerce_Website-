@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import axios from 'axios';
+import getApiUrl from '../../utils/getApiUrl';
 import toast, { Toaster } from 'react-hot-toast';
 
 const CATEGORIES = [
@@ -30,7 +31,7 @@ const ProductEditScreen = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const { data } = await axios.get(`/api/products/${productId}`);
+        const { data } = await axios.get(getApiUrl() + `/products/${productId}`);
         setName(data.name);
         setPrice(data.price);
         setImage(data.image);
@@ -63,7 +64,7 @@ const ProductEditScreen = () => {
       };
       
       await axios.put(
-        `/api/products/${productId}`, 
+        getApiUrl() + `/products/${productId}`,
         { name, price: Number(price), brand, category, countInStock: Number(countInStock), description, image }, 
         config
       );
@@ -98,7 +99,7 @@ const ProductEditScreen = () => {
     formData.append('image', file);
 
     try {
-      const { data } = await axios.post('/api/upload', formData, {
+      const { data } = await axios.post(getApiUrl() + '/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (progressEvent) => {
           const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -121,7 +122,7 @@ const ProductEditScreen = () => {
   return (
     <div className="container mx-auto p-6 md:p-10 max-w-2xl">
       <Toaster />
-      <Link to="/admin/productlist" className="text-blue-600 font-bold mb-5 block hover:underline flex items-center gap-2">
+      <Link to="/admin/productlist" className="text-blue-600 font-bold mb-5 hover:underline flex items-center gap-2">
         ← Back to Products
       </Link>
       

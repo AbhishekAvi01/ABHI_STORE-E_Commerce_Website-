@@ -5,20 +5,23 @@ const {
     authUser, 
     getUsers, 
     deleteUser,
-    getUserProfile 
+    getUserProfile,
+    updateUserProfile
 } = require('../controllers/userController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
 // 1. Auth & Base Routes
-router.post('/login', authUser); // Login ke liye
+router.post('/login', authUser);
 router.route('/')
-    .post(registerUser) // Signup ke liye
-    .get(protect, admin, getUsers); // Admin ke liye saare users ki list
+    .post(registerUser)
+    .get(protect, admin, getUsers);
 
-// 2. Profile Route
-router.route('/profile').get(protect, getUserProfile); // Login user ki apni profile
+// 2. Profile Routes - MUST come before /:id
+router.route('/profile')
+    .get(protect, getUserProfile)
+    .put(protect, updateUserProfile);
 
 // 3. Admin Only: Delete Route
-router.route('/:id').delete(protect, admin, deleteUser); // Admin kisi user ko delete kar sake
+router.route('/:id').delete(protect, admin, deleteUser);
 
 module.exports = router;

@@ -1,38 +1,64 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom'; // Link import kiya
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import getApiUrl from '../../utils/getApiUrl';
 
 const OrderListScreen = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  // Get userInfo from localStorage
+  const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null');
+
+  // Verify admin access on mount
+  useEffect(() => {
+    if (!userInfo || !userInfo.isAdmin) {
+      navigate('/login');
+      return;
+    }
+  }, [userInfo, navigate]);
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+        if (!userInfo || !userInfo.token) {
+          console.error('❌ No auth token found. Please login first.');
+          setLoading(false);
+          return;
+        }
         const config = {
           headers: {
             Authorization: `Bearer ${userInfo.token}`,
           },
         };
-        const { data } = await axios.get(getApiUrl() + '/orders', config);
+        const url = getApiUrl() + '/orders';
+        console.log('🔍 Fetching orders from:', url);
+        const { data } = await axios.get(url, config);
+        console.log('✅ Orders fetched:', data);
         if (Array.isArray(data)) {
           setOrders(data);
         } else {
           setOrders([]);
-          console.error('API did not return an array:', data);
+          console.error('⚠️ API did not return an array:', data);
         }
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching orders:', error.message);
+        console.error('❌ Error fetching orders:', error);
+        if (error.response) {
+          console.error('Response status:', error.response.status);
+          console.error('Response data:', error.response.data);
+        }
         setOrders([]);
         setLoading(false);
       }
     };
 
-    fetchOrders();
-  }, []);
+    if (userInfo && userInfo.isAdmin) {
+      fetchOrders();
+    }
+  }, [userInfo]);
 
   return (
     <div className="container mx-auto p-10">

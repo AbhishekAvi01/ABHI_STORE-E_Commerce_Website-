@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../slices/cartSlice';
-import api from '../utils/api';
+import axios from 'axios';
+import getApiUrl from '../utils/getApiUrl';
 import toast, { Toaster } from 'react-hot-toast';
 
 const ProductScreen = () => {
@@ -17,7 +18,7 @@ const ProductScreen = () => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const { data } = await api.get(`/products/${productId}`);
+        const { data } = await axios.get(getApiUrl() + `/products/${productId}`);
         setProduct(data);
         setError(null);
       } catch (error) {

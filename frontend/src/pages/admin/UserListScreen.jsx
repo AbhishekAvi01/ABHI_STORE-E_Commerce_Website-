@@ -1,31 +1,60 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import getApiUrl from '../../utils/getApiUrl';
+import { useNavigate } from 'react-router-dom';
 
 const UserListScreen = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  // Get userInfo from localStorage
+  const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null');
+
+  // Verify admin access on mount
+  useEffect(() => {
+    if (!userInfo || !userInfo.isAdmin) {
+      navigate('/login');
+      return;
+    }
+  }, [userInfo, navigate]);
 
   const fetchUsers = async () => {
     try {
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+      if (!userInfo || !userInfo.token) {
+        console.error('❌ No auth token found. Please login first.');
+        setLoading(false);
+        return;
+      }
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
-      const { data } = await axios.get(getApiUrl() + '/users', config);
+      const url = getApiUrl() + '/users';
+      console.log('🔍 Fetching users from:', url);
+      const { data } = await axios.get(url, config);
+      console.log('✅ Users fetched:', data);
       if (Array.isArray(data)) {
         setUsers(data);
       } else {
         setUsers([]);
-        console.error('API did not return an array:', data);
+        console.error('⚠️ API did not return an array:', data);
       }
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching users:', error.message);
+      console.error('❌ Error fetching users:', error);
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
       setUsers([]);
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => { 
+    if (userInfo && userInfo.isAdmin) {
+      fetchUsers(); 
+    }
+  }, [userInfo]);
 
   const deleteHandler = async (id) => {
     if (window.confirm('Kya aap is user ko delete karna chahte hain?')) {

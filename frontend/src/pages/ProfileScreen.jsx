@@ -1,14 +1,18 @@
 // frontend/src/pages/ProfileScreen.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useGetMyOrdersQuery } from '../slices/ordersApiSlice';
+import axios from 'axios';
+import getApiUrl from '../utils/getApiUrl';
 
 const ProfileScreen = () => {
   const navigate = useNavigate();
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Check if user is authenticated
+  // Check if user is authenticated and fetch orders
   useEffect(() => {
     const userInfo = localStorage.getItem('userInfo');
     if (!userInfo) {
@@ -16,12 +20,29 @@ const ProfileScreen = () => {
       return;
     }
     setIsAuthenticated(true);
-  }, [navigate]);
 
-  // Only fetch orders if user is authenticated
-  const { data: orders = [], isLoading, error } = useGetMyOrdersQuery(undefined, {
-    skip: !isAuthenticated,
-  });
+    const fetchOrders = async () => {
+      try {
+        setIsLoading(true);
+        const user = JSON.parse(userInfo);
+        const config = {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        };
+        const { data } = await axios.get(getApiUrl() + '/orders/myorders', config);
+        setOrders(Array.isArray(data) ? data : []);
+        setError(null);
+      } catch (err) {
+        setError(err?.response?.data?.message || 'Failed to load orders');
+        setOrders([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [navigate]);
 
   const toggleOrderDetails = (orderId) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);

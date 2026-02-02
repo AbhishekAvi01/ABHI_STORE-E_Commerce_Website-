@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import CheckoutSteps from '../components/CheckoutSteps';
 import { clearCartItems } from '../slices/cartSlice';
-import { useCreateOrderMutation } from '../slices/ordersApiSlice';
+import axios from 'axios';
+import getApiUrl from '../utils/getApiUrl';
 import toast, { Toaster } from 'react-hot-toast';
 
 const PlaceOrderScreen = () => {
@@ -11,9 +12,8 @@ const PlaceOrderScreen = () => {
   const dispatch = useDispatch();
   const [showSuccess, setShowSuccess] = useState(false);
   const [orderId, setOrderId] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const cart = useSelector((state) => state.cart);
-  
-  const [createOrder, { isLoading }] = useCreateOrderMutation();
 
   useEffect(() => {
     if (!cart.shippingAddress.address) navigate('/shipping');
@@ -22,7 +22,14 @@ const PlaceOrderScreen = () => {
 
   const placeOrderHandler = async () => {
     try {
-      const result = await createOrder({
+      setIsLoading(true);
+      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+      const config = {
+        headers: {
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+      };
+      const { data: result } = await axios.post(getApiUrl() + '/orders', {
         orderItems: cart.cartItems,
         shippingAddress: cart.shippingAddress,
         paymentMethod: cart.paymentMethod,
@@ -30,7 +37,7 @@ const PlaceOrderScreen = () => {
         shippingPrice: cart.shippingPrice,
         taxPrice: cart.taxPrice,
         totalPrice: cart.totalPrice,
-      }).unwrap();
+      }, config);
 
       dispatch(clearCartItems());
       setOrderId(result._id);
@@ -42,7 +49,9 @@ const PlaceOrderScreen = () => {
       }, 2000);
       
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to place order');
+      toast.error(err?.response?.data?.message || 'Failed to place order');
+    } finally {
+      setIsLoading(false);
     }
   };
 

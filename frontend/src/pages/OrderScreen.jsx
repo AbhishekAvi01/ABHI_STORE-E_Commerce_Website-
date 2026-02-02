@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useGetOrderByIdQuery, useUpdateOrderToDeliveredMutation } from '../slices/ordersApiSlice';
+import axios from 'axios';
+import getApiUrl from '../utils/getApiUrl';
 import toast, { Toaster } from 'react-hot-toast';
 
 const OrderScreen = () => {
   const navigate = useNavigate();
   const { id: orderId } = useParams();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [order, setOrder] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false);
   
-  // Check authentication on mount
+  // Check authentication and fetch order
   useEffect(() => {
     const userInfo = localStorage.getItem('userInfo');
     if (!userInfo) {
@@ -16,23 +21,53 @@ const OrderScreen = () => {
       return;
     }
     setIsAuthenticated(true);
-  }, [navigate]);
 
-  const { data: order, isLoading, error } = useGetOrderByIdQuery(orderId, {
-    skip: !isAuthenticated,
-  });
-  const [updateOrderToDelivered, { isLoading: isUpdating }] = useUpdateOrderToDeliveredMutation();
+    const fetchOrder = async () => {
+      try {
+        setIsLoading(true);
+        const user = JSON.parse(userInfo);
+        const config = {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        };
+        const { data } = await axios.get(getApiUrl() + `/orders/${orderId}`, config);
+        setOrder(data);
+        setError(null);
+      } catch (err) {
+        setError(err?.response?.data?.message || 'Order Not Found');
+        setOrder(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchOrder();
+  }, [navigate, orderId]);
+
   const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
 
   const deliverHandler = async () => {
     try {
-      await updateOrderToDelivered(orderId).unwrap();
+      setIsUpdating(true);
+      const user = JSON.parse(localStorage.getItem('userInfo'));
+      const config = {
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+        },
+      };
+      await axios.put(getApiUrl() + `/orders/${orderId}/deliver`, {}, config);
       toast.success('Order status updated to Delivered!', {
         position: 'top-center',
         style: { borderRadius: '12px', background: '#111', color: '#fff', fontSize: '11px', fontWeight: 'bold' }
       });
+      // Refresh order
+      const { data } = await axios.get(getApiUrl() + `/orders/${orderId}`, config);
+      setOrder(data);
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to update order');
+      toast.error(err?.response?.data?.message || 'Failed to update order');
+    } finally {
+      setIsUpdating(false);
     }
   };
 

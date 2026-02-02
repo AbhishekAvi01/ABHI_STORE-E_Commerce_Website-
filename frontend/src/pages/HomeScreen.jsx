@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { addToCart } from '../slices/cartSlice';
-import api from '../utils/api';
+import axios from 'axios';
+import getApiUrl from '../utils/getApiUrl';
 import toast, { Toaster } from 'react-hot-toast';
 
 const HomeScreen = () => {
@@ -33,15 +34,30 @@ const HomeScreen = () => {
         if (selectedCategory) params.append('category', selectedCategory);
         if (sort) params.append('sort', sort);
         
-        const { data } = await api.get(`/products?${params.toString()}`);
+        const queryString = params.toString();
+        const url = getApiUrl() + `/products${queryString ? '?' + queryString : ''}`;
+        console.log('🔍 Fetching products from:', url);
+        const { data } = await axios.get(url);
+        console.log('✅ Products fetched:', data);
         if (Array.isArray(data)) {
           setProducts(data);
         } else {
+          console.warn('⚠️ Data is not an array:', data);
           setProducts([]);
         }
       } catch (error) {
-        console.error('Error fetching products:', error.message);
+        console.error('❌ Error fetching products:', error);
+        if (error.response) {
+          console.error('Response status:', error.response.status);
+          console.error('Response data:', error.response.data);
+        } else if (error.request) {
+          console.error('No response received:', error.request);
+        }
         setProducts([]);
+        toast.error('Failed to load products. Ensure backend server is running on port 5000', {
+          position: 'top-center',
+          style: { borderRadius: '12px', background: '#111', color: '#fff', fontSize: '11px' }
+        });
       } finally {
         setLoading(false);
       }

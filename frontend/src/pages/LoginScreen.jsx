@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials } from '../slices/authSlice';
-import api from '../utils/api';
+import axios from 'axios';
+import getApiUrl from '../utils/getApiUrl';
 import toast, { Toaster } from 'react-hot-toast';
 
 const LoginScreen = () => {
@@ -29,14 +30,18 @@ const LoginScreen = () => {
     setLoading(true);
     try {
       // Backend se login request
-      const { data } = await api.post('/users/login', { email, password });
+      const { data } = await axios.post(getApiUrl() + '/users/login', { email, password });
       
-      // Redux Store aur LocalStorage dono mein data save hoga
-      dispatch(setCredentials({ ...data }));
-      
-      const redirect = searchParams.get('redirect') || '/';
-      navigate(redirect);
-      toast.success('Login successful!');
+      if (data && data._id) {
+        // Redux Store aur LocalStorage dono mein data save hoga
+        dispatch(setCredentials(data));
+        
+        const redirect = searchParams.get('redirect') || '/';
+        navigate(redirect);
+        toast.success('Login successful!');
+      } else {
+        toast.error('Invalid response from server');
+      }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Login Failed');
     } finally {

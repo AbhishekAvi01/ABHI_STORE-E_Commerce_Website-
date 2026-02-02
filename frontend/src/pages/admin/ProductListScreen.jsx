@@ -9,33 +9,45 @@ const ProductListScreen = () => {
   const navigate = useNavigate();
   
   // LocalStorage se userInfo nikalna
-  const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+  const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null');
+
+  // Verify admin access
+  useEffect(() => {
+    if (!userInfo || !userInfo.isAdmin) {
+      navigate('/login');
+      return;
+    }
+  }, [userInfo, navigate]);
 
   const fetchProducts = async () => {
     try {
-      const { data } = await axios.get(getApiUrl() + '/products');
+      const url = getApiUrl() + '/products';
+      console.log('🔍 Fetching products from:', url);
+      const { data } = await axios.get(url);
+      console.log('✅ Products fetched:', data);
       if (Array.isArray(data)) {
         setProducts(data);
       } else {
         setProducts([]);
-        console.error('API did not return an array:', data);
+        console.error('⚠️ API did not return an array:', data);
       }
       setLoading(false);
     } catch (error) {
-      console.error('Error:', error.message);
+      console.error('❌ Error fetching products:', error);
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
       setProducts([]);
       setLoading(false);
     }
   };
 
   useEffect(() => { 
-    // Agar user admin nahi hai toh wapas bhej dein
-    if (!userInfo || !userInfo.isAdmin) {
-      navigate('/login');
-    } else {
+    if (userInfo && userInfo.isAdmin) {
       fetchProducts(); 
     }
-  }, [navigate]);
+  }, [userInfo]);
 
   // Naya product banane ka handler
   const createProductHandler = async () => {

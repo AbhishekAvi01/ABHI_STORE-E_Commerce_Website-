@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials } from '../slices/authSlice';
-import api from '../utils/api';
+import axios from 'axios';
+import getApiUrl from '../utils/getApiUrl';
 import toast, { Toaster } from 'react-hot-toast';
 
 const SignupScreen = () => {
@@ -68,17 +69,21 @@ const SignupScreen = () => {
     setLoading(true);
     try {
       // Backend se signup request
-      const { data } = await api.post('/users', { 
+      const { data } = await axios.post(getApiUrl() + '/users', { 
         name: name.trim(), 
         email: email.trim().toLowerCase(), 
         password 
       });
       
-      // Redux Store aur LocalStorage dono mein data save hoga
-      dispatch(setCredentials({ ...data }));
-      
-      toast.success(`Welcome ${data.name}! Account created successfully!`);
-      navigate('/');
+      if (data && data._id) {
+        // Redux Store aur LocalStorage dono mein data save hoga
+        dispatch(setCredentials(data));
+        
+        toast.success(`Welcome ${data.name}! Account created successfully!`);
+        navigate('/');
+      } else {
+        toast.error('Invalid response from server');
+      }
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Signup failed. Please try again.';
       toast.error(errorMessage);

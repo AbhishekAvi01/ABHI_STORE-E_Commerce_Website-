@@ -103,4 +103,39 @@ const getUserProfile = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { authUser, registerUser, getUserProfile, getUsers, deleteUser };
+// @desc    Update user profile
+// @route   PUT /api/users/profile
+// @access  Private
+const updateUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  if (req.body.name) {
+    user.name = req.body.name;
+  }
+  if (req.body.email) {
+    const existingUser = await User.findOne({ email: req.body.email });
+    if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+      return res.status(400).json({ message: 'Email already in use' });
+    }
+    user.email = req.body.email;
+  }
+  if (req.body.password) {
+    user.password = req.body.password;
+  }
+
+  const updatedUser = await user.save();
+
+  res.json({
+    _id: updatedUser._id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    isAdmin: updatedUser.isAdmin,
+    token: require('../utils/generateToken')(updatedUser._id),
+  });
+});
+
+module.exports = { authUser, registerUser, getUserProfile, updateUserProfile, getUsers, deleteUser };
