@@ -1,8 +1,17 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-// Base URL empty rakhein kyunki package.json mein proxy use ho rahi hai
-const baseQuery = fetchBaseQuery({ 
-  baseUrl: '',
+
+// Use full backend URL in production, '' (proxy) in development
+const getBaseUrl = () => {
+  if (import.meta.env.PROD) {
+    // Change this to your deployed backend URL
+    return import.meta.env.VITE_API_URL || '/api';
+  }
+  return '';
+};
+
+const baseQuery = fetchBaseQuery({
+  baseUrl: getBaseUrl(),
   prepareHeaders: (headers, { getState }) => {
     const userInfo = localStorage.getItem('userInfo');
     if (userInfo) {
